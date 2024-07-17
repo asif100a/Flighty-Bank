@@ -1,19 +1,45 @@
-import axios from "axios";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast, ToastContainer } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
+import useAxiosPublic from "../Hooks/useAxiosPublic";
 
 const Registration = () => {
+    const [pinError, setPinError] = useState(false);
+    const axiosPublic = useAxiosPublic();
+
     const {
         register,
         handleSubmit,
         formState: { errors },
     } = useForm();
 
-    const onsubmit = async(data) => {
-        console.table(data);
+    const onsubmit = async (data) => {
+        try {
+            if (data.PIN.length < 5 || data.PIN.length > 5) {
+                return setPinError(true);
+            } else {
+                setPinError(false);
+            }
+            console.table(data);
 
-        // Save user data to the database
-        const {data: savedData} = await axios.post('http://localhost:4000/user_info', data);
-        console.log(savedData);
+            // Verify the user before saving data
+            const {data: verifiedData} = await axiosPublic.post('/jwt', {email: data.email});
+            if(verifiedData.token) {
+                localStorage.setItem('token', verifiedData.token);
+
+                // Save user data to the database
+                const { data: savedData } = await axiosPublic.post('/user_info', data);
+                console.log(savedData);
+                if (savedData.insertedId) {
+                    toast.success('You have registered successfully');
+                }
+            }
+
+        } catch (error) {
+            console.error(error);
+            toast.error(error.response.data);
+        }
     }
 
     return (
@@ -36,7 +62,7 @@ const Registration = () => {
                                 id="name"
                                 name="name"
                                 placeholder="Provide your name"
-                                {...register("name", {required: true})}
+                                {...register("name", { required: true })}
                                 className="block w-full px-4 py-2 text-gray-700 bg-white border rounded-lg dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 focus:border-blue-400 focus:ring-opacity-40 dark:focus:border-blue-300 focus:outline-none focus:ring focus:ring-blue-300"
                             />
                             {errors.name && <span className="text-rose-600">This field is required</span>}
@@ -49,7 +75,7 @@ const Registration = () => {
                                 id="mobile_number"
                                 name="mobile_number"
                                 placeholder="Provide mobile number"
-                                {...register("mobile_number", {required: true})}
+                                {...register("mobile_number", { required: true })}
                                 className="block w-full px-4 py-2 text-gray-700 bg-white border rounded-lg dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 focus:border-blue-400 focus:ring-opacity-40 dark:focus:border-blue-300 focus:outline-none focus:ring focus:ring-blue-300"
                             />
                             {errors.mobile_number && <span className="text-rose-600">This field is required</span>}
@@ -62,10 +88,11 @@ const Registration = () => {
                                 id="PIN"
                                 name="PIN"
                                 placeholder="Provide 5 digit PIN"
-                                {...register("PIN", {required: true})}
+                                {...register("PIN", { required: true })}
                                 className="block w-full px-4 py-2 text-gray-700 bg-white border rounded-lg dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 focus:border-blue-400 focus:ring-opacity-40 dark:focus:border-blue-300 focus:outline-none focus:ring focus:ring-blue-300"
                             />
                             {errors.PIN && <span className="text-rose-600">This field is required</span>}
+                            {pinError && <span className="text-rose-600">PIN must be 5 digit</span>}
                         </div>
 
                         <div className="mt-4">
@@ -75,7 +102,7 @@ const Registration = () => {
                                 id="email"
                                 name="email"
                                 placeholder="Provide your email address"
-                                {...register("email", {required: true})}
+                                {...register("email", { required: true })}
                                 className="block w-full px-4 py-2 text-gray-700 bg-white border rounded-lg dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 focus:border-blue-400 focus:ring-opacity-40 dark:focus:border-blue-300 focus:outline-none focus:ring focus:ring-blue-300"
                             />
                             {errors.email && <span className="text-rose-600">This field is required</span>}
@@ -87,6 +114,7 @@ const Registration = () => {
                     </form>
                 </div>
             </div>
+            <ToastContainer />
         </section>
     );
 };
